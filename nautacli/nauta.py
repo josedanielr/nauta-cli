@@ -27,17 +27,18 @@ LOGOUT_URL_FILE = os.path.join(CONFIG_DIR, "logout_url")
 logfile = open(os.path.join(CONFIG_DIR, "connections.log"), "a")
 
 def log(*args, **kwargs):
-    date = subprocess.check_output("date").decode().strip()
-    kwargs.update(dict(file=logfile))
-    print(
-        "{:.3f} ({})".format(
-            time.time(),
-            date,
-        ),
-        *args,
-        **kwargs,
-    )
-    logfile.flush()
+    # date = subprocess.check_output("date").decode().strip()
+    # kwargs.update(dict(file=logfile))
+    # print(
+    #     "{:.3f} ({})".format(
+    #         time.time(),
+    #         date,
+    #     ),
+    #     *args,
+    #     **kwargs,
+    # )
+    # logfile.flush()
+    pass
 
 def get_inputs(form_soup):
     form = {}
@@ -470,8 +471,3 @@ def main(args):
     else:
         parser.print_help()
 
-if __name__ == "__main__":
-    main(sys.argv[1:])
-
-
-#809bb22296c155ee7f0cbcd69113ee5dd72025294c800570
