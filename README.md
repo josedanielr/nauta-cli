@@ -32,9 +32,9 @@ Instalación fácil con PIP:
 
     * Opcionalmente puede especificar la duración máxima para la sesión, luego de la cual se desconecta automáticamente:
     
-    `> python -m nautacli up --time 60 periquito@nauta.com.cu`
-    
-    El ejemplo anterior mantiene abierta la sesión durante un minuto.
+        `> python -m nautacli up --time 60 periquito@nauta.com.cu`
+        
+        El ejemplo anterior mantiene abierta la sesión durante un minuto.
     
 # Mas Información
 
