@@ -164,6 +164,7 @@ def up(args):
     else:
         with open(ATTR_UUID_FILE, "w") as f:
             f.write(attribute_uuid + "\n")
+
         login_time = int(time.time())
         logout_url = (
             "https://secure.etecsa.net:8443/LogoutServlet?" +
@@ -179,6 +180,7 @@ def up(args):
         )
         with open(LOGOUT_URL_FILE, "w") as f:
             f.write(logout_url + "\n")
+
         print("Logged in successfully. To logout, run 'nauta down'")
         print("or just hit Ctrl+C here, I'll stick around...")
         log("Connected. Actual logout URL is: '{}'".format(logout_url))
@@ -188,19 +190,32 @@ def up(args):
             log("Bad guess :(")
         try:
             while True:
+                elapsed = int(time.time()) - login_time
+
                 print("\rConnection time: {} ".format(
-                    human_secs(int(time.time()) - login_time)
+                    human_secs(elapsed)
                 ), end="")
-                time.sleep(1)
+
+                if args.time is not None:
+                    print(". Automatically Disconnect in {}".format(
+                        human_secs(args.time - elapsed)
+                    ), end="")
+
+                    if elapsed > args.time:
+                        raise KeyboardInterrupt()
+
                 if not os.path.exists(LOGOUT_URL_FILE):
                     break
+
+                time.sleep(1)
+
         except KeyboardInterrupt:
             print("Got a Ctrl+C, logging out...")
             log("Got Ctrl+C. Attempting disconnect...")
             down([])
 
-            now = int(time.time())
-            log("Connection time:", human_secs(now - login_time))
+            elapsed = int(time.time()) - login_time
+            log("Connection time:", human_secs(elapsed))
 
             tl = time_left(username)
             print("Reported time left:", tl)
@@ -452,6 +467,7 @@ def main(args):
     up_parser = subparsers.add_parser('up')
     up_parser.set_defaults(func=up)
     up_parser.add_argument('username', nargs="?")
+    up_parser.add_argument('-t', '--time', help='Define la duracion maxima (en segundos) para esta conexion', type=int)
 
     down_parser = subparsers.add_parser('down')
     down_parser.set_defaults(func=down)
