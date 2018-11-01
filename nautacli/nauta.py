@@ -79,15 +79,14 @@ def select_card():
     return cards[0]['username'], cards[0]['password']
 
 def up(args):
-    session = requests.Session()
-    r = session.get("http://google.com")
-
-    soup = bs4.BeautifulSoup(r.text, 'html.parser')
-    action = soup.form["action"]
-    if ('google.com' in ''.join(r.cookies.list_domains()) and
-        not 'secure.etecsa.net' in action):
-        print("Looks like you're already connected. Use 'nauta down' to log out.")
-        return
+    """
+    Esto tiene un problema con la navegacion nacional. Cuando estas conectado
+    si intentas llamar a la funcion google.com nunca va a responder, ni tampoco
+    redirecciona al portal de usuario. Asi que es necesario cambiar la forma de
+    determinar si estamos conectados o no.
+    :param args: 
+    :return: 
+    """
 
     if args.username:
         username = args.username
@@ -102,32 +101,33 @@ def up(args):
             return
         username = username.decode()
 
+    session = requests.Session()
+
     tl = time_left(username)
     print("Using card {}. Time left: {}".format(username, tl))
     log("Connecting with card {}. Time left on card: {}".format(username, tl))
 
-    form = get_inputs(soup)
+    r = session.get("http://www.etecsa.cu")
+    if b'secure.etecsa.net' not in r.content:
+        print("Looks like you're already connected. Use 'nauta down' to log out.")
+        return
 
-    #pprint("Calling session.post:")
-    #pprint({"action": action,
-    #        "form": form})
+    soup = bs4.BeautifulSoup(r.text, 'html.parser')
+    action = soup.form["action"]
+    form = get_inputs(soup)
     r = session.post(action, form)
 
     soup = bs4.BeautifulSoup(r.text, 'html.parser')
-    #pprint("-------soup------")
-    #pprint(soup)
+
     form_soup = soup.find("form", id="formulario")
-    #pprint("-------form_soup------")
-    #pprint(form_soup)
     action = form_soup["action"]
-    #pprint("-------action------")
-    #pprint(action)
     form = get_inputs(form_soup)
-    #print("form:", form)
     form['username'] = username
     form['password'] = password
+
     csrfhw = form['CSRFHW']
     wlanuserip = form['wlanuserip']
+
     last_attribute_uuid = ""
     try:
         last_attribute_uuid = open(ATTR_UUID_FILE, "r").read().strip()
@@ -150,9 +150,6 @@ def up(args):
         f.write(guessed_logout_url + "\n")
 
     log("Attempting connection. Guessed logout url:", guessed_logout_url)
-    #pprint("Calling session.post:")
-    #pprint({"action": action,
-    #        "form": form})
     try:
         r = session.post(action, form)
         m = re.search(r'ATTRIBUTE_UUID=(\w+)&CSRFHW=', r.text)
