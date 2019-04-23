@@ -26,5 +26,8 @@ setup(
     ],
     keywords='nauta portal_cautivo',
     packages=find_packages(),
-    install_requires=['requests', 'bs4']
+    install_requires=['requests', 'bs4'],
+    entry_points = {
+        'console_scripts': ['nautacli=nautacli.__main__:main'],
+    }
 )
