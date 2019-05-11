@@ -10,7 +10,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 
 setup(
     name="nauta-cli",
-    version=0.4,
+    version=0.5,
     description='Utilidad en linea de comandos (CLI) para la gestion del portal cautivo Nauta de Cuba',
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -26,5 +26,8 @@ setup(
     ],
     keywords='nauta portal_cautivo',
     packages=find_packages(),
-    install_requires=['requests', 'bs4']
+    install_requires=['requests', 'bs4'],
+    scripts=[
+        'bin/nauta'
+    ]
 )
