@@ -1,2 +1,12 @@
-if __name__ == '__main__':
-    print("Deprecated command line, use 'nauta' command instead")
+from os import path
+import sys
+
+here = path.abspath(path.dirname(__file__))
+sys.path.append(here)
+
+def main():
+    import nauta
+    nauta.main(sys.argv[1:])
+
+if __name__ == "__main__":
+    main()
