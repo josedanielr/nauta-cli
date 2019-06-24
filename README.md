@@ -20,6 +20,7 @@ Instalación fácil con PIP:
 
 1. Crear una entrada de usuario (card). En el terminal introducir:
 
+
     `> nautacli card add periquito@nauta.com.cu`
     
     Introducir la contraseña cuando se pida. Debe cambiar `periquito@nauta.com.cu` por su usuario Nauta.
