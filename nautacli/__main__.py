@@ -6,7 +6,7 @@ sys.path.append(here)
 
 def main():
     import nauta
-    nauta.main(sys.argv[1:])
+    nauta.main()
 
 if __name__ == "__main__":
     main()
