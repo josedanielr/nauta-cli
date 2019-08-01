@@ -85,8 +85,8 @@ def up(args):
     si intentas llamar a la funcion google.com nunca va a responder, ni tampoco
     redirecciona al portal de usuario. Asi que es necesario cambiar la forma de
     determinar si estamos conectados o no.
-    :param args: 
-    :return: 
+    :param args:
+    :return:
     """
 
     if args.username:
@@ -330,13 +330,21 @@ def cards(args):
             if not args.v:
                 password = "*" * len(password)
             entries.append((card, password))
-    
+
     for card, password in entries:
+        try:
+            time = time_left(card, args.fresh, args.cached)
+            expiry = expire_date(card, args.fresh, args.cached)
+        except requests.exceptions.ConnectionError:
+            time = 'N/A'
+            expiry = 'N/A'
+            print('# WARNING: It seems that you have no network access.')
+            
         print("{}\t{}\t{}\t(expires {})".format(
             card,
             password,
-            time_left(card, args.fresh, args.cached),
-            expire_date(card, args.fresh, args.cached)
+            time,
+            expiry
         ))
 
 def verify(username, password):
@@ -479,7 +487,7 @@ def main():
     down_parser.set_defaults(func=down)
 
     args = parser.parse_args()
-    
+
     if 'username' in args and '@' not in args.username:
             # default domain is @nauta.com.cu
             args.username += '@nauta.com.cu'
@@ -493,4 +501,3 @@ def main():
         args.func(args)
     else:
         parser.print_help()
-
