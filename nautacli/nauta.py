@@ -331,6 +331,7 @@ def cards(args):
                 password = "*" * len(password)
             entries.append((card, password))
 
+    con_error = False
     for card, password in entries:
         try:
             time = time_left(card, args.fresh, args.cached)
@@ -338,7 +339,9 @@ def cards(args):
         except requests.exceptions.ConnectionError:
             time = 'N/A'
             expiry = 'N/A'
-            print('# WARNING: It seems that you have no network access.')
+            if not con_error:
+                con_error = True
+                print('# WARNING: It seems that you have no network access.')
             
         print("{}\t{}\t{}\t(expires {})".format(
             card,
