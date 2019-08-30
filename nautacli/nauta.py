@@ -342,7 +342,7 @@ def cards(args):
             if not con_error:
                 con_error = True
                 print('# WARNING: It seems that you have no network access.')
-            
+
         print("{}\t{}\t{}\t(expires {})".format(
             card,
             password,
@@ -492,8 +492,8 @@ def main():
     args = parser.parse_args()
 
     if 'username' in args and '@' not in args.username:
-            # default domain is @nauta.com.cu
-            args.username += '@nauta.com.cu'
+        # default domain is @nauta.com.cu
+        args.username += '@nauta.com.cu'
 
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)
