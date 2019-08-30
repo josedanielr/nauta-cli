@@ -10,7 +10,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 
 setup(
     name="nauta-cli",
-    version=0.5,
+    version=0.6,
     description='Utilidad en linea de comandos (CLI) para la gestion del portal cautivo Nauta de Cuba',
     long_description_content_type='text/markdown',
     url='https://github.com/atscub/nauta-cli',
