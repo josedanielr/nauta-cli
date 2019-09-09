@@ -2,6 +2,7 @@
 
 from pprint import pprint
 from textwrap import dedent
+from datetime import datetime
 
 import subprocess
 import requests
@@ -28,18 +29,13 @@ LOGOUT_URL_FILE = os.path.join(CONFIG_DIR, "logout_url")
 logfile = open(os.path.join(CONFIG_DIR, "connections.log"), "a")
 
 def log(*args, **kwargs):
-    # date = subprocess.check_output("date").decode().strip()
-    # kwargs.update(dict(file=logfile))
-    # print(
-    #     "{:.3f} ({})".format(
-    #         time.time(),
-    #         date,
-    #     ),
-    #     *args,
-    #     **kwargs,
-    # )
-    # logfile.flush()
-    pass
+    kwargs.update(dict(file=logfile))
+    print(
+        "{} ".format(datetime.now()),
+        *args,
+        **kwargs,
+    )
+    logfile.flush()
 
 def get_inputs(form_soup):
     form = {}
@@ -81,10 +77,6 @@ def select_card():
 
 def up(args):
     """
-    Esto tiene un problema con la navegacion nacional. Cuando estas conectado
-    si intentas llamar a la funcion google.com nunca va a responder, ni tampoco
-    redirecciona al portal de usuario. Asi que es necesario cambiar la forma de
-    determinar si estamos conectados o no.
     :param args:
     :return:
     """
@@ -242,10 +234,10 @@ def down(args):
             r = session.get(logout_url)
             break
         except requests.RequestException:
-            print("There was a problem logging out, retrying...")
-            continue
-    print(r.text)
+            print("There was a problem logging out, retrying %d..." % error_count)
+    log("Logout message: %s" % r.text)
     if 'SUCCESS' in r.text:
+        print('Connection closed successfully')
         os.remove(LOGOUT_URL_FILE)
 
 def fetch_expire_date(username, password):
@@ -341,7 +333,7 @@ def cards(args):
             expiry = 'N/A'
             if not con_error:
                 con_error = True
-                print('# WARNING: It seems that you have no network access.')
+                print('WARNING: It seems that you have no network access.')
 
         print("{}\t{}\t{}\t(expires {})".format(
             card,
@@ -433,7 +425,7 @@ def main():
         epilog=dedent("""\
         Subcommands:
 
-          up [username]
+          up [-t] [username]
           down
           cards [-v] [-f] [-c]
           cards add [username]
@@ -491,7 +483,7 @@ def main():
 
     args = parser.parse_args()
 
-    if 'username' in args and '@' not in args.username:
+    if 'username' in args and args.username and '@' not in args.username:
         # default domain is @nauta.com.cu
         args.username += '@nauta.com.cu'
 
@@ -501,6 +493,11 @@ def main():
         HTTPConnection.debuglevel = 2
 
     if 'func' in args:
-        args.func(args)
+        try:
+            args.func(args)
+        except requests.exceptions.ConnectionError as ex:
+            print("Conection error. Check your connection and try again.")
+            import traceback
+            log(traceback.format_exc())
     else:
         parser.print_help()
