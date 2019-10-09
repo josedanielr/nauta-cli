@@ -53,6 +53,16 @@ def parse_time(t):
     except:
         return 0
 
+def expand_username(username):
+    """If user enters just username (without domain) then expand it"""
+    with dbm.open(CARDS_DB) as cards_db:
+        for user in cards_db:
+            user = user.decode()
+            user_part = user[:user.index('@')]
+            if username.lower() == user_part:
+                return user
+    return username  # not found
+
 def get_password(username):
     with dbm.open(CARDS_DB) as cards_db:
         if not username in cards_db:
@@ -366,7 +376,7 @@ def cards_add(args):
         print("Credentials seem incorrect")
         return
     with dbm.open(CARDS_DB, "c") as cards_db:
-        cards_db[username] = json.dumps({
+        cards_db[username.lower()] = json.dumps({
             'password': password,
         })
 
@@ -485,9 +495,8 @@ def main():
     args = parser.parse_args()
 
     if 'username' in args and args.username and '@' not in args.username:
-        # default domain is @nauta.com.cu
-        args.username += '@nauta.com.cu'
-
+        args.username = expand_username(args.username)
+    
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)
         from http.client import HTTPConnection
