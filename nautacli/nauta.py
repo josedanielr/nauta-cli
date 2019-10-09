@@ -229,16 +229,18 @@ def down(args):
         return
     session = requests.Session()
     print("Logging out...")
+    r = None
     for error_count in range(10):
         try:
             r = session.get(logout_url)
             break
         except requests.RequestException:
             print("There was a problem logging out, retrying %d..." % error_count)
-    log("Logout message: %s" % r.text)
-    if 'SUCCESS' in r.text:
-        print('Connection closed successfully')
-        os.remove(LOGOUT_URL_FILE)
+    if r:
+        log("Logout message: %s" % r.text)
+        if 'SUCCESS' in r.text:
+            print('Connection closed successfully')
+            os.remove(LOGOUT_URL_FILE)
 
 def fetch_expire_date(username, password):
     session = requests.Session()
@@ -269,15 +271,14 @@ def time_left(username, fresh=False, cached=False):
         card_info = json.loads(cards_db[username].decode())
         last_update = card_info.get('last_update', 0)
         password = card_info['password']
-        if not cached:
-            if (now - last_update > 60) or fresh:
-                time_left = fetch_usertime(username)
-                last_update = time.time()
-                if re.match(r'[0-9:]+', time_left):
-                    card_info['time_left'] = time_left
-                    card_info['last_update'] = last_update
-                    cards_db[username] = json.dumps(card_info)
-        time_left = card_info.get('time_left', '-')
+        if not cached and (fresh or now - last_update > 60):
+            time_left = fetch_usertime(username)
+            last_update = time.time()
+            if re.match(r'[0-9:]+', time_left):
+                card_info['time_left'] = time_left
+                card_info['last_update'] = last_update
+                cards_db[username] = json.dumps(card_info)
+        time_left = card_info.get('time_left', 'N/A')
         return time_left
 
 def expire_date(username, fresh=False, cached=False):
@@ -287,12 +288,11 @@ def expire_date(username, fresh=False, cached=False):
     # never change in the case of non-rechargeable cards
     with dbm.open(CARDS_DB, "c") as cards_db:
         card_info = json.loads(cards_db[username].decode())
-        if not cached:
-            if (not 'expire_date' in card_info) or fresh:
-                password = card_info['password']
-                exp_date = fetch_expire_date(username, password)
-                card_info['expire_date'] = exp_date
-                cards_db[username] = json.dumps(card_info)
+        if not cached and (fresh or not 'expire_date' in card_info):
+            password = card_info['password']
+            exp_date = fetch_expire_date(username, password)
+            card_info['expire_date'] = exp_date
+            cards_db[username] = json.dumps(card_info)
         exp_date = card_info['expire_date']
         return exp_date
 
@@ -325,19 +325,20 @@ def cards(args):
 
     con_error = False
     for card, password in entries:
-        try:
-            time = time_left(card, args.fresh, args.cached)
-            expiry = expire_date(card, args.fresh, args.cached)
-        except requests.exceptions.ConnectionError:
-            time = 'N/A'
-            expiry = 'N/A'
-            if not con_error:
+        if not con_error:
+            try:
+                time = time_left(card, args.fresh, args.cached)
+                expiry = expire_date(card, args.fresh, args.cached)
+            except requests.exceptions.ConnectionError:
                 con_error = True
-                print('WARNING: It seems that you have no network access.')
+                print('WARNING: It seems that you have no network access. Showing data from cache.')
+        
+        if con_error:
+            time = time_left(card, args.fresh, True)
+            expiry = expire_date(card, args.fresh, True)
 
-        print("{}\t{}\t{}\t(expires {})".format(
+        print("{}\t{}\t(expires {})".format(
             card,
-            password,
             time,
             expiry
         ))
