@@ -58,7 +58,10 @@ def expand_username(username):
     with dbm.open(CARDS_DB) as cards_db:
         for user in cards_db:
             user = user.decode()
-            user_part = user[:user.index('@')]
+            if '@' in user:
+                user_part = user[:user.index('@')]
+            else:
+                user_part = user
             if username.lower() == user_part:
                 return user
     return username  # not found
