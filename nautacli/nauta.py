@@ -113,7 +113,7 @@ def up(args):
     print("Using card {}. Time left: {}".format(username, tl))
     log("Connecting with card {}. Time left on card: {}".format(username, tl))
 
-    r = session.get("http://www.etecsa.cu")
+    r = session.get("http://1.1.1.1")
     if b'secure.etecsa.net' not in r.content:
         print("Looks like you're already connected. Use 'nauta down' to log out.")
         return
