@@ -1,32 +1,34 @@
 #!/usr/bin/env python3
 
-from pprint import pprint
-from textwrap import dedent
-from datetime import datetime
-
-import subprocess
-import requests
 import argparse
-import json
-import time
-import bs4
-import sys
 import dbm
+import getpass
+import json
+import logging
 import os
 import re
-import getpass
+import sys
+import time
+from datetime import datetime
+from textwrap import dedent
 
-import logging
+import bs4
+import requests
 
 CONFIG_DIR = os.path.expanduser("~/.local/share/nauta/")
+
 try:
     os.makedirs(CONFIG_DIR)
 except FileExistsError:
     pass
+
 CARDS_DB = os.path.join(CONFIG_DIR, "cards")
 ATTR_UUID_FILE = os.path.join(CONFIG_DIR, "attribute_uuid")
 LOGOUT_URL_FILE = os.path.join(CONFIG_DIR, "logout_url")
 logfile = open(os.path.join(CONFIG_DIR, "connections.log"), "a")
+
+session = requests.Session()
+
 
 def log(*args, **kwargs):
     kwargs.update(dict(file=logfile))
@@ -37,6 +39,7 @@ def log(*args, **kwargs):
     )
     logfile.flush()
 
+
 def get_inputs(form_soup):
     form = {}
     for i in form_soup.find_all("input"):
@@ -46,12 +49,14 @@ def get_inputs(form_soup):
             continue
     return form
 
+
 def parse_time(t):
     try:
-        h,m,s = [int(x.strip()) for x in t.split(":")]
+        h, m, s = [int(x.strip()) for x in t.split(":")]
         return h * 3600 + m * 60 + s
     except:
         return 0
+
 
 def expand_username(username):
     """If user enters just username (without domain) then expand it"""
@@ -66,12 +71,14 @@ def expand_username(username):
                 return user
     return username  # not found
 
+
 def get_password(username):
     with dbm.open(CARDS_DB) as cards_db:
         if not username in cards_db:
             return None
         info = json.loads(cards_db[username].decode())
         return info['password']
+
 
 def select_card():
     cards = []
@@ -87,6 +94,7 @@ def select_card():
     if len(cards) == 0:
         return None, None
     return cards[0]['username'], cards[0]['password']
+
 
 def up(args):
     """
@@ -106,8 +114,6 @@ def up(args):
             print("No card available, add one with 'nauta cards add'")
             return
         username = username.decode()
-
-    session = requests.Session()
 
     tl = time_left(username)
     print("Using card {}. Time left: {}".format(username, tl))
@@ -141,11 +147,11 @@ def up(args):
         pass
 
     guessed_logout_url = (
-        "https://secure.etecsa.net:8443/LogoutServlet?" +
-        "CSRFHW={}&" +
-        "username={}&" +
-        "ATTRIBUTE_UUID={}&" +
-        "wlanuserip={}"
+            "https://secure.etecsa.net:8443/LogoutServlet?" +
+            "CSRFHW={}&" +
+            "username={}&" +
+            "ATTRIBUTE_UUID={}&" +
+            "wlanuserip={}"
     ).format(
         csrfhw,
         username,
@@ -173,11 +179,11 @@ def up(args):
 
         login_time = int(time.time())
         logout_url = (
-            "https://secure.etecsa.net:8443/LogoutServlet?" +
-            "CSRFHW={}&" +
-            "username={}&" +
-            "ATTRIBUTE_UUID={}&" +
-            "wlanuserip={}"
+                "https://secure.etecsa.net:8443/LogoutServlet?" +
+                "CSRFHW={}&" +
+                "username={}&" +
+                "ATTRIBUTE_UUID={}&" +
+                "wlanuserip={}"
         ).format(
             csrfhw,
             username,
@@ -227,12 +233,14 @@ def up(args):
             print("Reported time left:", tl)
             log("Reported time left:", tl)
 
+
 def human_secs(secs):
     return "{:02.0f}:{:02.0f}:{:02.0f}".format(
         secs // 3600,
         (secs % 3600) // 60,
         secs % 60,
     )
+
 
 def down(args):
     try:
@@ -255,6 +263,7 @@ def down(args):
             print('Connection closed successfully')
             os.remove(LOGOUT_URL_FILE)
 
+
 def fetch_expire_date(username, password):
     session = requests.Session()
     r = session.get("https://secure.etecsa.net:8443/")
@@ -273,10 +282,12 @@ def fetch_expire_date(username, password):
     exp_text = exp_text.replace('\\', '')
     return exp_text
 
+
 def fetch_usertime(username):
     session = requests.Session()
     r = session.get("https://secure.etecsa.net:8443/EtecsaQueryServlet?op=getLeftTime&op1={}".format(username))
     return r.text
+
 
 def time_left(username, fresh=False, cached=False):
     now = time.time()
@@ -294,6 +305,7 @@ def time_left(username, fresh=False, cached=False):
         time_left = card_info.get('time_left', 'N/A')
         return time_left
 
+
 def expire_date(username, fresh=False, cached=False):
     # expire date computation won't depend on last_update
     # because the expire date will change very infrequently
@@ -308,6 +320,7 @@ def expire_date(username, fresh=False, cached=False):
             cards_db[username] = json.dumps(card_info)
         exp_date = card_info['expire_date']
         return exp_date
+
 
 def delete_cards(cards):
     with dbm.open(CARDS_DB, "c") as cards_db:
@@ -324,6 +337,7 @@ def delete_cards(cards):
                     break
                 if reply.lower().startswith("n"):
                     break
+
 
 def cards(args):
     entries = []
@@ -345,7 +359,7 @@ def cards(args):
             except requests.exceptions.ConnectionError:
                 con_error = True
                 print('WARNING: It seems that you have no network access. Showing data from cache.')
-        
+
         if con_error:
             time = time_left(card, args.fresh, True)
             expiry = expire_date(card, args.fresh, True)
@@ -355,6 +369,7 @@ def cards(args):
             time,
             expiry
         ))
+
 
 def verify(username, password):
     session = requests.Session()
@@ -372,6 +387,7 @@ def verify(username, password):
         return False
     return True
 
+
 def cards_add(args):
     username = args.username or input("Username: ")
     password = getpass.getpass("Password: ")
@@ -383,6 +399,7 @@ def cards_add(args):
             'password': password,
         })
 
+
 def cards_clean(args):
     cards_to_purge = []
     with dbm.open(CARDS_DB, "c") as cards_db:
@@ -393,8 +410,10 @@ def cards_clean(args):
                 cards_to_purge.append(card)
     delete_cards(cards_to_purge)
 
+
 def cards_rm(args):
     delete_cards(args.usernames)
+
 
 def cards_info(args):
     username = args.username
@@ -428,13 +447,13 @@ def cards_info(args):
     table = soup.find('table', id='sesiontraza')
     for tr in table.find_all('tr'):
         tds = tr.find_all('td')
-        if len(tds) > 0: # avoid the empty line on the ths row
+        if len(tds) > 0:  # avoid the empty line on the ths row
             for cell in tds:
                 print(cell.text.strip(), end="\t")
             print()
 
+
 def main():
-    args = sys.argv[1:]
     parser = argparse.ArgumentParser(
         epilog=dedent("""\
         Subcommands:
@@ -453,24 +472,24 @@ def main():
     )
     subparsers = parser.add_subparsers()
     parser.add_argument("-d", "--debug",
-        action="store_true",
-        help="show debug info"
-    )
+                        action="store_true",
+                        help="show debug info"
+                        )
 
     cards_parser = subparsers.add_parser('cards')
     cards_parser.set_defaults(func=cards)
     cards_parser.add_argument("-v",
-        action="store_true",
-        help="show full passwords"
-    )
+                              action="store_true",
+                              help="show full passwords"
+                              )
     cards_parser.add_argument("-f", "--fresh",
-        action="store_true",
-        help="force a fresh request of card time"
-    )
+                              action="store_true",
+                              help="force a fresh request of card time"
+                              )
     cards_parser.add_argument("-c", "--cached",
-        action="store_true",
-        help="shows cached data, avoids the network"
-    )
+                              action="store_true",
+                              help="shows cached data, avoids the network"
+                              )
     cards_subparsers = cards_parser.add_subparsers()
     cards_add_parser = cards_subparsers.add_parser('add')
     cards_add_parser.set_defaults(func=cards_add)
@@ -499,7 +518,7 @@ def main():
 
     if 'username' in args and args.username and '@' not in args.username:
         args.username = expand_username(args.username)
-    
+
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)
         from http.client import HTTPConnection
