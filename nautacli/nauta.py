@@ -265,16 +265,7 @@ def down(args):
 
 
 def fetch_expire_date(username, password):
-    session = requests.Session()
-    r = session.get("https://secure.etecsa.net:8443/")
-    soup = bs4.BeautifulSoup(r.text, 'html.parser')
-
-    form = get_inputs(soup)
-    action = "https://secure.etecsa.net:8443/EtecsaQueryServlet"
-    form['username'] = username
-    form['password'] = password
-    r = session.post(action, form)
-    soup = bs4.BeautifulSoup(r.text, 'html.parser')
+    soup = log_in_soup(username, password)
     exp_node = soup.find(string=re.compile("expiración"))
     if not exp_node:
         return "**invalid credentials**"
@@ -372,16 +363,7 @@ def cards(args):
 
 
 def verify(username, password):
-    session = requests.Session()
-    r = session.get("https://secure.etecsa.net:8443/")
-    soup = bs4.BeautifulSoup(r.text, 'html.parser')
-
-    form = get_inputs(soup)
-    action = "https://secure.etecsa.net:8443/EtecsaQueryServlet"
-    form['username'] = username
-    form['password'] = password
-    r = session.post(action, form)
-    soup = bs4.BeautifulSoup(r.text, 'html.parser')
+    soup = log_in_soup(username, password)
     exp_node = soup.find(string=re.compile("expiración"))
     if not exp_node:
         return False
@@ -415,13 +397,7 @@ def cards_rm(args):
     delete_cards(args.usernames)
 
 
-def cards_info(args):
-    username = args.username
-    with dbm.open(CARDS_DB, "c") as cards_db:
-        card_info = json.loads(cards_db[username].decode())
-        password = card_info['password']
-
-    session = requests.Session()
+def log_in_soup(username, password):
     r = session.get("https://secure.etecsa.net:8443/")
     soup = bs4.BeautifulSoup(r.text, 'html.parser')
 
@@ -430,7 +406,16 @@ def cards_info(args):
     form['username'] = username
     form['password'] = password
     r = session.post(action, form)
-    soup = bs4.BeautifulSoup(r.text, 'html.parser')
+    return bs4.BeautifulSoup(r.text, 'html.parser')
+
+
+def cards_info(args):
+    username = args.username
+    with dbm.open(CARDS_DB, "c") as cards_db:
+        card_info = json.loads(cards_db[username].decode())
+        password = card_info['password']
+
+    soup = log_in_soup(username, password)
 
     print("Información")
     print("-----------")
@@ -453,21 +438,21 @@ def cards_info(args):
             print()
 
 
-def main():
+def build_parser():
     parser = argparse.ArgumentParser(
         epilog=dedent("""\
-        Subcommands:
+            Subcommands:
 
-          up [-t] [username]
-          down
-          cards [-v] [-f] [-c]
-          cards add [username]
-          cards clean
-          cards rm username [username ...]
-          cards info username
+              up [-t] [username]
+              down
+              cards [-v] [-f] [-c]
+              cards add [username]
+              cards clean
+              cards rm username [username ...]
+              cards info username
 
-        Use -h after a subcommand for more info
-        """),
+            Use -h after a subcommand for more info
+            """),
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
     subparsers = parser.add_subparsers()
@@ -514,6 +499,11 @@ def main():
     down_parser = subparsers.add_parser('down')
     down_parser.set_defaults(func=down)
 
+    return parser
+
+
+def main():
+    parser = build_parser()
     args = parser.parse_args()
 
     if 'username' in args and args.username and '@' not in args.username:
@@ -533,3 +523,7 @@ def main():
             log(traceback.format_exc())
     else:
         parser.print_help()
+
+
+if __name__ == "__main__":
+    main()
