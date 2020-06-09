@@ -119,7 +119,7 @@ def up(args):
     print("Using card {}. Time left: {}".format(username, tl))
     log("Connecting with card {}. Time left on card: {}".format(username, tl))
 
-    r = session.get("http://www.cubadebate.cu")
+    r = session.get("http://www.cubadebate.cu/robots.txt")
     if b'secure.etecsa.net' not in r.content:
         print("Looks like you're already connected. Use 'nauta down' to log out.")
         return
@@ -274,20 +274,14 @@ def fetch_expire_date(username, password):
     return exp_text
 
 
-def fetch_usertime(username):
-    session = requests.Session()
-    r = session.get("https://secure.etecsa.net:8443/EtecsaQueryServlet?op=getLeftTime&op1={}".format(username))
-    return r.text
-
-
-def time_left(username, fresh=False, cached=False):
+def time_left(username, token=None, fresh=False, cached=False):
     now = time.time()
     with dbm.open(CARDS_DB, "c") as cards_db:
         card_info = json.loads(cards_db[username].decode())
         last_update = card_info.get('last_update', 0)
-        password = card_info['password']
-        if not cached and (fresh or now - last_update > 60):
-            time_left = fetch_usertime(username)
+        if token and not cached and (fresh or now - last_update > 60):
+            r = session.post("https://secure.etecsa.net:8443/EtecsaQueryServlet?CSRFHW={}&op=getLeftTime".format(token))
+            time_left = r.text
             last_update = time.time()
             if re.match(r'[0-9:]+', time_left):
                 card_info['time_left'] = time_left
